@@ -3,6 +3,8 @@
 
 void ALL_Config(void);
 
+char string[20] = {0};
+int i = 0;
 //加入以下代码,支持printf函数,而不需要选择use MicroLIB	  
 //#if 1
 //#pragma import(__use_no_semihosting)             
@@ -24,6 +26,17 @@ void ALL_Config(void);
 //	x = x; 
 //} 
 //重定义fputc函数 
+
+#define Data_SIZE 10 //数据长度   9位数据 +  /r/n  -  /n =10位
+
+char RevBuf[Data_SIZE];      //数据接收缓冲区
+char temp[Data_SIZE];        //防数据抵消缓冲区
+unsigned char flished_flag=0; //数据接收符合要求标志
+int data_count=0;    //数据长度
+int temp_length;    //数据长度
+int data_flished_count = 0;  //
+char data_flished;           //
+
 int fputc(int ch, FILE *f)
 {  
 	while(!((USART1->ISR)&(1<<7))){}
@@ -80,14 +93,24 @@ void USART1_Init(uint32_t baud)
 //=============================================================================
 void USART1_IRQHandler(void)
 {
-  
+  char c = 0;
   if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET){
-    USART_SendData(USART1,USART_ReceiveData(USART1));
-    //printf("receive [%c]\r\n",USART_ReceiveData(USART1));
+    //USART_SendData(USART1,USART_ReceiveData(USART1));
+    //printf("receive [%d]\r\n",USART_ReceiveData(USART1));
+    c = USART_ReceiveData(USART1);
+    if(c != 13){
+      RevBuf[data_count] = c;
+      data_count++;
+    }else{
+      temp_length = data_count;
+      data_count = 0;
+    }
+    
+    
+
     while (USART_GetFlagStatus(USART1,USART_FLAG_TXE) == RESET);
   }
 
-  return;
 }
 
 
@@ -98,11 +121,24 @@ int main(void)
 	
 	while(1)
 	{
+          int str_cur;
 			LED_ON();
-			delay_ms(5000);
-			printf("STM32F030F4P6 USART TEST i =%d\r\n",i++);
+			delay_ms(1000);
+			printf("STM32F030F4P6 USART TEST\r\n");
 			LED_OFF();
 			delay_ms(5000);
+/*
+for(str_cur = 0;str_cur != temp_length;str_cur++){
+  USART_SendData(USART1,RevBuf[str_cur]);
+  while(USART_GetFlagStatus(USART1,USART_FLAG_TC)==RESET);
+  if(str_cur == temp_length-1){
+USART_SendData(USART1,'\r');
+USART_SendData(USART1,'\n');
+while(USART_GetFlagStatus(USART1,USART_FLAG_TC)==RESET);
+  }
+}
+str_cur = 0;
+*/
 	}
 
 	
